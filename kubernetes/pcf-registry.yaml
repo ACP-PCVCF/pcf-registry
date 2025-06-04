@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pcf-registry-service
+  namespace: pcf-registry
+  labels:
+    app: pcf-registry-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pcf-registry-service
+  template:
+    metadata:
+      labels:
+        app: pcf-registry-service
+    spec:
+      containers:
+        - name: pcf-registry-container
+          image: pcf-registry:latest #for production I will need to push my image to dockerhub
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5002
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: pcf-registry-service
+  namespace: pcf-registry
+spec:
+  type: ClusterIP
+  selector:
+    app: pcf-registry-service
+  ports:
+    - port: 80
+      targetPort: 5002
+      protocol: TCP

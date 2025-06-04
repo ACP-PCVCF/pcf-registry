@@ -10,10 +10,10 @@ load_dotenv()
 
 app = Flask(__name__)
 
-MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT")
-MINIO_ACCESS_KEY =os.getenv("ACCESS_KEY")
-MINIO_SECRET_KEY =os.getenv("SECRET_KEY")
-MINIO_BUCKET = os.getenv("MINIO_BUCKET")
+MINIO_ENDPOINT = "minio-service:9000"#os.getenv("MINIO_ENDPOINT")
+MINIO_ACCESS_KEY = "minio"#os.getenv("ACCESS_KEY")
+MINIO_SECRET_KEY = "minioadmin"#os.getenv("SECRET_KEY")
+MINIO_BUCKET = "pcf-registry"#os.getenv("MINIO_BUCKET")
 
 minio_client = Minio(
     endpoint=MINIO_ENDPOINT,
@@ -108,4 +108,4 @@ def delete_file(object_name: str):
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0', port=5002)
