@@ -2,7 +2,7 @@ namespace: pcf-registry
 
 pcfRegistry:
   image: pcf-registry:latest
-  replicas: 2
+  replicas: 1
   containerPort: 5002
   servicePort: 80
   pcfAppName: pcf-registry-service
@@ -10,7 +10,7 @@ pcfRegistry:
 minio:
   image: quay.io/minio/minio:latest
   replicas: 1
-  rootUser: minio
+  rootUser: minioadmin
   rootPassword: minioadmin
   consolePort: 9001
   apiPort: 9000

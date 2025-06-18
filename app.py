@@ -12,8 +12,8 @@ import json_streaming_pb2_grpc
 app = Flask(__name__)
 
 MINIO_ENDPOINT = "minio-service:9000"
-MINIO_ACCESS_KEY = "pcfadmin"
-MINIO_SECRET_KEY = "pcfadmin"
+MINIO_ACCESS_KEY = "minioadmin"
+MINIO_SECRET_KEY = "minioadmin"
 MINIO_BUCKET = "pcf-registry"
 
 minio_client = Minio(
