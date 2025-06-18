@@ -1,6 +1,4 @@
-.env
 .idea
 .venv
 __pychache__
-templates
 static

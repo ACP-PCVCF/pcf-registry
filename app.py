@@ -1,19 +1,20 @@
+import os
+import threading
+from concurrent import futures
 from io import BytesIO
 from typing import Tuple
 
 from flask import Flask, request, json, jsonify, Response
 from minio import Minio, S3Error
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-
+import grpc
+import json_streaming_pb2
+import json_streaming_pb2_grpc
 app = Flask(__name__)
 
-MINIO_ENDPOINT = "minio-service:9000"#os.getenv("MINIO_ENDPOINT")
-MINIO_ACCESS_KEY = "minio"#os.getenv("ACCESS_KEY")
-MINIO_SECRET_KEY = "minioadmin"#os.getenv("SECRET_KEY")
-MINIO_BUCKET = "pcf-registry"#os.getenv("MINIO_BUCKET")
+MINIO_ENDPOINT = "minio-service:9000"
+MINIO_ACCESS_KEY = "pcfadmin"
+MINIO_SECRET_KEY = "pcfadmin"
+MINIO_BUCKET = "pcf-registry"
 
 minio_client = Minio(
     endpoint=MINIO_ENDPOINT,
@@ -25,6 +26,59 @@ minio_client = Minio(
 #check if a bucket with the MINIO_BUCKET name already exists, if not create a new one
 if not minio_client.bucket_exists(MINIO_BUCKET):
     minio_client.make_bucket(MINIO_BUCKET)
+
+
+# ------------------ gRPC Server implementation (upload, get) -------#
+
+def get_file_from_metadata(context):
+    for meta_data_chunk in context.invocation_metadata():
+        if meta_data_chunk.key == "filename":
+            return meta_data_chunk.value
+    return None
+
+class JsonStreamingServicer(json_streaming_pb2_grpc.JsonStreamingServiceServicer):
+
+    def UploadJson(self, request_iterator, context):
+        filename = get_file_from_metadata(context)
+        temp_path = f"/tmp/{filename}"
+
+        with open(temp_path, "wb") as f:
+            for chunk in request_iterator:
+                f.write(chunk.data)
+
+        try:
+            minio_client.fput_object(MINIO_BUCKET, filename, temp_path)
+            response = json_streaming_pb2.UploadResponse(success=True, message=f"File {filename} uploaded")
+        except S3Error as e:
+            response = {"error": str(e)}
+        except Exception as e:
+            response = {"error": str(e)}
+
+        os.remove(temp_path)
+        return response
+
+
+    def GetJson(self, get_request, context):
+        bucket = get_request.bucket
+        filename = get_request.filename
+
+        temp_path = f"/tmp/{filename}"
+        minio_client.fget_object(bucket, filename, temp_path)
+
+        with open(temp_path, "rb") as f:
+            while True:
+                chunk = f.read(4096)
+                if not chunk:
+                    break
+                yield json_streaming_pb2.JsonChunk(data=chunk)
+
+        os.remove(temp_path)
+
+# ------------------ End of gRPC Server ------------------------------#
+
+
+# ------------------ HTTP Server (Crud app) --------------------------#
+
 
 @app.route('/')
 def hello_world():  # put application's code here
@@ -107,5 +161,29 @@ def delete_file(object_name: str):
         return jsonify({"error": "Unexpected error", "message": str(e)}), 500
 
 
+#----------------- End of HTTP Server ------------------#
+
+#starts the grpc server on port 50052
+def serve_grpc():
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    json_streaming_pb2_grpc.add_JsonStreamingServiceServicer_to_server(JsonStreamingServicer(), server)
+    server.add_insecure_port('[::]:50052')
+    server.start()
+    print("gRPC server listening on port 50052...")
+    server.wait_for_termination()
+
+
+#starts the http flask server
+def run_http():
+    app.run(port=5002, debug=True)
+
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5002)
+    t1 = threading.Thread(target=serve_grpc)
+    t2 = threading.Thread(target=run_http)
+
+    t1.start()
+    t2.start()
+
+    t1.join()
+    t2.join()

@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+service JsonStreamingService {
+
+    rpc UploadJson(stream JsonChunk) returns (UploadResponse);
+
+    rpc GetJson(GetRequest) returns (stream JsonChunk);
+}
+
+message JsonChunk {
+    bytes data = 1;
+}
+
+message UploadResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message GetRequest {
+    string message = 1;
+}
