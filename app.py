@@ -30,49 +30,99 @@ if not minio_client.bucket_exists(MINIO_BUCKET):
 
 # ------------------ gRPC Server implementation (upload, get) -------#
 
-def get_file_from_metadata(context):
-    for meta_data_chunk in context.invocation_metadata():
-        if meta_data_chunk.key == "filename":
-            return meta_data_chunk.value
+def get_filename_from_metadata(context):
+    """Extracts filename from gRPC invocation metadata."""
+    for key, value in context.invocation_metadata():
+        if key == "filename":
+            return value
     return None
 
 class JsonStreamingServicer(json_streaming_pb2_grpc.JsonStreamingServiceServicer):
+    """Implements the gRPC streaming service."""
 
     def UploadJson(self, request_iterator, context):
-        filename = get_file_from_metadata(context)
-        temp_path = f"/tmp/{filename}"
+        """
+        Handles client-streaming upload. The file is written to a temporary
+        location and then uploaded to MinIO.
+        """
+        filename = get_filename_from_metadata(context)
+        if not filename:
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details("Filename must be provided in metadata.")
+            return json_streaming_pb2.UploadResponse(success=False, message="Missing filename.")
 
-        with open(temp_path, "wb") as f:
-            for chunk in request_iterator:
-                f.write(chunk.data)
+        print("hallllloooo")
+        temp_path = f"/tmp/{filename}"
+        print(f"Receiving file: {filename}")
 
         try:
-            minio_client.fput_object(MINIO_BUCKET, filename, temp_path)
-            response = json_streaming_pb2.UploadResponse(success=True, message=f"File {filename} uploaded")
-        except S3Error as e:
-            response = {"error": str(e)}
-        except Exception as e:
-            response = {"error": str(e)}
+            # Write stream to a temporary file
+            with open(temp_path, "wb") as f:
+                for chunk in request_iterator:
+                    f.write(chunk.data)
 
-        os.remove(temp_path)
+            # Upload the completed file from the temporary path to MinIO
+            minio_client.fput_object(MINIO_BUCKET, filename, temp_path)
+            print(f"File '{filename}' successfully uploaded to MinIO bucket '{MINIO_BUCKET}'.")
+            response = json_streaming_pb2.UploadResponse(success=True, message=f"File {filename} uploaded successfully.")
+        
+        except S3Error as e:
+            print(f"MinIO Error during upload: {e}")
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(f"MinIO S3 Error: {e}")
+            response = json_streaming_pb2.UploadResponse(success=False, message=str(e))
+        except Exception as e:
+            print(f"An unexpected error occurred during upload: {e}")
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(f"Internal Server Error: {e}")
+            response = json_streaming_pb2.UploadResponse(success=False, message=str(e))
+        finally:
+            # Clean up the temporary file
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
         return response
 
-
-    def GetJson(self, get_request, context):
-        bucket = get_request.bucket
-        filename = get_request.filename
-
+    def GetJson(self, request, context):
+        """
+        Handles server-streaming download. The file is fetched from MinIO and
+        streamed back to the client in chunks. The bucket is fixed.
+        """
+        filename = request.message
+        
+        print(f"Request to download '{filename}' from bucket '{MINIO_BUCKET}'.")
+        
         temp_path = f"/tmp/{filename}"
-        minio_client.fget_object(bucket, filename, temp_path)
 
-        with open(temp_path, "rb") as f:
-            while True:
-                chunk = f.read(4096)
-                if not chunk:
-                    break
-                yield json_streaming_pb2.JsonChunk(data=chunk)
+        try:
+            # Download object from MinIO to a temporary file
+            minio_client.fget_object(MINIO_BUCKET, filename, temp_path)
+            
+            # Stream the file in chunks from the temporary location
+            with open(temp_path, "rb") as f:
+                while True:
+                    chunk = f.read(4096)  # 4KB chunk size
+                    if not chunk:
+                        break
+                    yield json_streaming_pb2.JsonChunk(data=chunk)
+            print(f"Finished streaming '{filename}'.")
 
-        os.remove(temp_path)
+        except S3Error as e:
+            print(f"MinIO Error during download: {e}")
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details(f"Could not retrieve file. Error: {e}")
+            # Yield nothing to indicate an error.
+            return
+        except Exception as e:
+            print(f"An unexpected error occurred during download: {e}")
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(f"An unexpected error occurred. Error: {e}")
+            # Yield nothing to indicate an error.
+            return
+        finally:
+            # Clean up the temporary file
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
 
 # ------------------ End of gRPC Server ------------------------------#
 
@@ -173,17 +223,31 @@ def serve_grpc():
     server.wait_for_termination()
 
 
-#starts the http flask server
 def run_http():
-    app.run(port=5002, debug=True)
+    """
+    Starts the Flask HTTP server.
+    For production, use a proper WSGI server like Gunicorn or uWSGI.
+    When running Flask in a thread, the reloader must be disabled.
+    """
+    print("Flask server starting...")
+    # host='0.0.0.0' makes the server accessible from outside the container.
+    # use_reloader=False is CRITICAL for running in a non-main thread.
+    app.run(host='0.0.0.0', port=5002, debug=False, use_reloader=False)
 
 
 if __name__ == '__main__':
-    t1 = threading.Thread(target=serve_grpc)
-    t2 = threading.Thread(target=run_http)
+    # Running both servers in separate threads for development.
+    # For a production environment, it's better to run these as separate services/processes.
+    grpc_thread = threading.Thread(target=serve_grpc)
+    http_thread = threading.Thread(target=run_http)
 
-    t1.start()
-    t2.start()
+    grpc_thread.start()
+    http_thread.start()
 
-    t1.join()
-    t2.join()
+    print("HTTP and gRPC servers are running in separate threads.")
+
+    grpc_thread.join()
+    http_thread.join()
+
+    print("Servers have been terminated.")
+
