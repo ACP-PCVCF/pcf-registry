@@ -1,7 +1,7 @@
 namespace: pcf-registry
 
 pcfRegistry:
-  image: pcf-registry:latest
+  image: ghcr.io/acp-pcvcf/pcf-registry:latest
   replicas: 1
   containerPort: 5002
   servicePort: 80
