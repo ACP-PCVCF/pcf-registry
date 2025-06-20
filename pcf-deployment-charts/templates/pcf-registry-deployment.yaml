@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pcf-registry-service
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.pcfRegistry.pcfAppName }}
+spec:
+  replicas: {{ .Values.pcfRegistry.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.pcfRegistry.pcfAppName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.pcfRegistry.pcfAppName }}
+    spec:
+      containers:
+        - name: pcf-registry-container
+          image: {{ .Values.pcfRegistry.image }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5002
+            - containerPort: 50052
+          command: [ "python" ]
+          args: [ "app.py" ]
