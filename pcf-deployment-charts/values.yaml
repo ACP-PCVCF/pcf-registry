@@ -1,4 +1,4 @@
-namespace: pcf-registry
+namespace: proving-system
 
 pcfRegistry:
   image: ghcr.io/acp-pcvcf/pcf-registry:latest
