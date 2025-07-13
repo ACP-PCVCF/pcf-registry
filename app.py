@@ -211,13 +211,12 @@ def delete_file(object_name: str):
         return jsonify({"error": "Unexpected error", "message": str(e)}), 500
 
 
-@app.route('/pcf-registry/search/<bucket_name>/<object_name>', methods=['GET'])
-def check_duplicate(object_name: str, bucket_name: str):
+@app.route('/pcf-registry/search/<object_name>', methods=['GET'])
+def check_duplicate(object_name: str):
     """
     Check if an object already exists in the minio bucket.
     Args:
         object_name: name of the file
-        bucket_name: name of the bucket
 
     Returns:
         200: objects does not exist yet
@@ -230,7 +229,7 @@ def check_duplicate(object_name: str, bucket_name: str):
         return jsonify({"error": "Missing object name"}), 400
 
     try:
-        minio_objects = minio_client.list_objects(bucket_name=bucket_name)
+        minio_objects = minio_client.list_objects(bucket_name=MINIO_BUCKET)
         for minio_object in minio_objects:
             if minio_object.object_name == object_name:
                 return jsonify({"message": f"Duplicate '{object_name}'"}), 401
