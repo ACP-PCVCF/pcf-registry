@@ -161,6 +161,34 @@ def delete_file(object_name: str):
         return jsonify({"error": "Unexpected error", "message": str(e)}), 500
 
 
+@app.route('/pcf-registry/search/<bucket_name>/<object_name>', methods=['GET'])
+def check_duplicate(object_name: str, bucket_name: str):
+    """
+    Check if an object already exists in the minio bucket.
+    Args:
+        object_name: name of the file
+        bucket_name: name of the bucket
+
+    Returns:
+        200: objects does not exist yet
+        401: object already exists
+        400: no objects name given
+        501: unexpected error
+    """
+
+    if object_name is None or object_name == "":
+        return jsonify({"error": "Missing object name"}), 400
+
+    try:
+        minio_objects = minio_client.list_objects(bucket_name=bucket_name)
+        for minio_object in minio_objects:
+            if minio_object.object_name == object_name:
+                return jsonify({"message": f"Duplicate '{object_name}'"}), 401
+        return jsonify({"message": f"Object '{object_name}' does not exist yet."}), 200
+
+    except Exception as e:
+        return jsonify({"error": "Unexpected error", "message": str(e)}), 501
+
 #----------------- End of HTTP Server ------------------#
 
 #starts the grpc server on port 50052
