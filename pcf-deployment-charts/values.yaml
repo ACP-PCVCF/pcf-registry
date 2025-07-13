@@ -1,3 +1,4 @@
+"""
 namespace: pcf-registry
 
 pcfRegistry:
@@ -18,3 +19,30 @@ minio:
 
 ingress:
   host: pcf-registry.local
+"""
+
+namespace: pcf-registry
+
+pcfRegistry:
+  image: ghcr.io/acp-pcvcf/pcf-registry:latest
+  replicas: 1
+  containerPorts:
+    http: 5002
+    grpc: 50052
+  servicePorts:
+    http: 5002
+    grpc: 50052
+  pcfAppName: pcf-registry-service
+
+minio:
+  image: quay.io/minio/minio:latest
+  replicas: 1
+  rootUser: minioadmin
+  rootPassword: minioadmin
+  consolePort: 9001
+  apiPort: 9000
+  minioAppName: minio-server
+
+ingress:
+  httpHost: pcf-registry.local
+  grpcHost: grpc.pcf-registry.local

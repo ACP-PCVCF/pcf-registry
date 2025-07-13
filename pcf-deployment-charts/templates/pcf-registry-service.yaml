@@ -1,3 +1,4 @@
+"""
 apiVersion: v1
 kind: Service
 metadata:
@@ -15,4 +16,24 @@ spec:
   - name: grpc
     port: 50052
     targetPort: 50052
+    protocol: TCP
+"""
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: pcf-registry-service
+  namespace: {{ .Values.namespace }}
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ .Values.pcfRegistry.pcfAppName }}
+  ports:
+  - name: http
+    port: {{ .Values.pcfRegistry.servicePorts.http }}
+    targetPort: {{ .Values.pcfRegistry.containerPorts.http }}
+    protocol: TCP
+  - name: grpc
+    port: {{ .Values.pcfRegistry.servicePorts.grpc }}
+    targetPort: {{ .Values.pcfRegistry.containerPorts.grpc }}
     protocol: TCP
