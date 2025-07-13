@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-  - host: {{ .Values.ingress.host }}
+  - host: {{ .Values.ingress.httpHost }}
     http:
       paths:
       - path: /
@@ -17,4 +17,15 @@ spec:
           service:
             name: pcf-registry-service
             port:
-              number: {{ .Values.pcfRegistry.servicePort }}
+              number: {{ .Values.pcfRegistry.servicePorts.http }}
+
+  - host: {{ .Values.ingress.grpcHost }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: pcf-registry-service
+            port:
+              number: {{ .Values.pcfRegistry.servicePorts.grpc }}
