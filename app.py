@@ -211,6 +211,11 @@ def delete_file(object_name: str):
         return jsonify({"error": "Unexpected error", "message": str(e)}), 500
 
 
+@app.route('/check')
+def check():
+    return jsonify("check if it works"), 200
+
+
 @app.route('/pcf-registry/search/<object_name>', methods=['GET'])
 def check_duplicate(object_name: str):
     """
