@@ -131,7 +131,7 @@ class JsonStreamingServicer(json_streaming_pb2_grpc.JsonStreamingServiceServicer
 
 
 @app.route('/')
-def hello_world():  # put application's code here
+def hello_world():
     return 'Hello World!'
 
 
@@ -213,7 +213,7 @@ def delete_file(object_name: str):
 
 @app.route('/check')
 def check():
-    return jsonify("check if it works"), 200
+    return "check"
 
 
 @app.route('/pcf-registry/search/<object_name>', methods=['GET'])
