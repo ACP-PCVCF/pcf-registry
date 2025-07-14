@@ -131,7 +131,7 @@ class JsonStreamingServicer(json_streaming_pb2_grpc.JsonStreamingServiceServicer
 
 
 @app.route('/')
-def hello_world():  # put application's code here
+def hello_world():
     return 'Hello World!'
 
 
@@ -209,6 +209,11 @@ def delete_file(object_name: str):
         return jsonify({"error": f"MinIO S3 error: {e.code}", "message": str(e)}), 404
     except Exception as e:
         return jsonify({"error": "Unexpected error", "message": str(e)}), 500
+
+
+@app.route('/check')
+def check():
+    return "check"
 
 
 @app.route('/pcf-registry/search/<object_name>', methods=['GET'])
