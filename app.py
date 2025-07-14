@@ -131,7 +131,7 @@ class JsonStreamingServicer(json_streaming_pb2_grpc.JsonStreamingServiceServicer
 
 
 @app.route('/')
-def hello_world():  # put application's code here
+def hello_world():
     return 'Hello World!'
 
 
@@ -210,6 +210,38 @@ def delete_file(object_name: str):
     except Exception as e:
         return jsonify({"error": "Unexpected error", "message": str(e)}), 500
 
+
+@app.route('/check')
+def check():
+    return "check"
+
+
+@app.route('/pcf-registry/search/<object_name>', methods=['GET'])
+def check_duplicate(object_name: str):
+    """
+    Check if an object already exists in the minio bucket.
+    Args:
+        object_name: name of the file
+
+    Returns:
+        200: objects does not exist yet
+        401: object already exists
+        400: no objects name given
+        501: unexpected error
+    """
+
+    if object_name is None or object_name == "":
+        return jsonify({"error": "Missing object name"}), 400
+
+    try:
+        minio_objects = minio_client.list_objects(bucket_name=MINIO_BUCKET)
+        for minio_object in minio_objects:
+            if minio_object.object_name == object_name:
+                return jsonify({"message": f"Duplicate '{object_name}'"}), 401
+        return jsonify({"message": f"Object '{object_name}' does not exist yet."}), 200
+
+    except Exception as e:
+        return jsonify({"error": "Unexpected error", "message": str(e)}), 501
 
 #----------------- End of HTTP Server ------------------#
 

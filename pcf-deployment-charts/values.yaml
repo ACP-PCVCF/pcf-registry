@@ -3,8 +3,12 @@ namespace: proving-system
 pcfRegistry:
   image: ghcr.io/acp-pcvcf/pcf-registry:latest
   replicas: 1
-  containerPort: 5002
-  servicePort: 80
+  containerPorts:
+    http: 5002
+    grpc: 50052
+  servicePorts:
+    http: 5002
+    grpc: 50052
   pcfAppName: pcf-registry-service
 
 minio:
@@ -17,4 +21,5 @@ minio:
   minioAppName: minio-server
 
 ingress:
-  host: pcf-registry.local
+  httpHost: pcf-registry.local
+  grpcHost: grpc.pcf-registry.local
