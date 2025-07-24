@@ -17,8 +17,8 @@ spec:
     spec:
       containers:
         - name: pcf-registry-container
-          image: {{ .Values.pcfRegistry.image }}
-          imagePullPolicy: IfNotPresent
+          image: "{{ .Values.image.registry }}/{{ .Values.pcfRegistry.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 5002
             - containerPort: 50052

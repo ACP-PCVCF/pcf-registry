@@ -1,7 +1,12 @@
 namespace: proving-system
 
+image:
+  registry: "ghcr.io/acp-pcvcf"
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
 pcfRegistry:
-  image: ghcr.io/acp-pcvcf/pcf-registry:latest
+  repository: "pcf-registry"
   replicas: 1
   containerPorts:
     http: 5002
