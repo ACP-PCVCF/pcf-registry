@@ -1,0 +1,14 @@
+apiVersion: v1
+entries:
+  pcf-registry:
+  - apiVersion: v2
+    appVersion: 1.0.0
+    created: "2025-08-16T12:04:24.045711925Z"
+    description: A Helm chart for the Flask-based pcf-registry microservice
+    digest: 5e0add02d927a63f905b75bc928540d5925cf42b2846cdba5fcfbd5deb95c4fd
+    name: pcf-registry
+    type: application
+    urls:
+    - https://github.com/ACP-PCVCF/pcf-registry/releases/download/pcf-registry-0.1.0/pcf-registry-0.1.0.tgz
+    version: 0.1.0
+generated: "2025-08-16T12:04:24.045716624Z"
